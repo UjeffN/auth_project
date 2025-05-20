@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 import re
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import User
 
 def format_mac_address(value):
     """Converte o MAC address para o formato padrão XX:XX:XX:XX:XX:XX em maiúsculas"""
@@ -61,6 +62,7 @@ class Dispositivo(models.Model):
         return f"{self.nome_dispositivo} - {self.mac_address} ({self.usuario.nome})"
 
 class Departamento(models.TextChoices):
+    PRL = 'PRL', _('Presidência Legislativa')
     CER = 'CER', _('Cerimonial')
     ASC = 'ASC', _('Assessoria de Comunicação')
     PRO = 'PRO', _('Procuradoria')
@@ -84,17 +86,51 @@ class Departamento(models.TextChoices):
     MTS = 'MTS', _('Materiais e Serviços')
     COM = 'COM', _('Compras')
     DTI = 'DTI', _('Departamento de Tecnologia da Informação')
-
+    GAB1 = 'GAB1', _('TITO MST')
+    GAB2 = 'GAB2', _('MAQUIVALDA')
+    GAB3 = 'GAB3', _('ELEOMÁRCIO')
+    GAB4 = 'GAB4', _('SGT. NOGUEIRA')
+    GAB5 = 'GAB5', _('SADISVAN')
+    GAB6 = 'GAB6', _('FRANCISCO ELOÉCIO')
+    GAB7 = 'GAB7', _('ZÉ DA LATA')
+    GAB8 = 'GAB8', _('ALÉX OHANA')
+    GAB9 = 'GAB9', _('FRED SANSÃO')
+    GAB10 = 'GAB10', _('ZÉ DO BODE')
+    GAB11 = 'GAB11', _('LEANDRO CHIQUITO')
+    GAB12 = 'GAB12', _('LAÉCIO DA ACT')
+    GAB13 = 'GAB13', _('GRACIELE BRITO')
+    GAB14 = 'GAB14', _('MICHEL CARTEIRO')
+    GAB15 = 'GAB15', _('ELIAS DA CONSTRUFORTE')
+    GAB16 = 'GAB16', _('ANDERSON MORATÓRIO')
+    GAB17 = 'GAB17', _('ÉRICA RIBEIRO')
 class UniFiUser(models.Model):
     nome = models.CharField('Nome', max_length=100)
     matricula = models.CharField('Matrícula', max_length=20, unique=True)
     departamento = models.CharField(
         'Departamento',
-        max_length=4,
+        max_length=15,
         choices=Departamento.choices,
-        default=Departamento.DTI
+        default=None
     )
+
+    VINCULO_CHOICES = [
+        ('efetivo', 'Efetivo'),
+        ('comissionado', 'Comissionado'),
+    ]
+    vinculo = models.CharField(
+        'Vínculo',
+        max_length=15,
+        choices=VINCULO_CHOICES,
+        default='efetivo'
+    )
+
     created_at = models.DateTimeField('Data de Criação', auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.nome} ({self.vinculo})"
+
+
+
 
     class Meta:
         verbose_name = 'Usuário UniFi'
@@ -106,3 +142,12 @@ class UniFiUser(models.Model):
 
     def __str__(self):
         return f"{self.nome} - {self.matricula}"
+
+class UnifiUserStatus(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    mac_address = models.CharField(max_length=17, unique=True)  # formato: AA:BB:CC:DD:EE:FF
+    cadastrado_unifi = models.BooleanField(default=False)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.mac_address}'

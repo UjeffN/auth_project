@@ -1,12 +1,104 @@
-# UniFi Auth Project
+# 📶 Projeto de Autenticação Wi-Fi com Django e UniFi
 
-Sistema de gerenciamento de usuários e dispositivos para UniFi Controller.
+## 📌 Visão Geral
+Este projeto automatiza a autorização de dispositivos para acesso à rede Wi-Fi **"Câmara"**, com base em um banco de dados gerenciado por um sistema Django. A integração com o **UniFi Controller** permite que dispositivos cadastrados sejam autorizados automaticamente, e removidos ao serem excluídos do sistema.
 
-## Requisitos
+---
 
-- Python 3.8 ou superior
-- Pip (gerenciador de pacotes Python)
-- UniFi Controller configurado e acessível
+## ⚙️ Tecnologias Utilizadas
+- **Backend:** Django + SQLite (ou PostgreSQL)
+- **Gerenciamento de rede:** UniFi Controller (sem UniFi Gateway)
+- **Switches:** Gerenciáveis
+- **Roteador/DHCP:** MikroTik RouterBoard
+- **Rede Wi-Fi alvo:** SSID `"Câmara"`
+
+---
+
+## 🗃️ Estrutura do Banco de Dados
+
+### Usuário (`User`)
+- `nome`: nome completo
+- `matricula`: código de identificação
+- `departamento`: setor ou área de atuação
+- `vinculo`: efetivo ou comissionado
+- `dispositivos`: lista de dispositivos com MACs
+
+### Dispositivo (`Dispositivo`)
+- `mac_address`: endereço MAC do dispositivo
+- `user`: relacionamento com usuário
+
+---
+
+## 🔁 Funcionalidades da API Django
+- ✅ Ao cadastrar um usuário:
+  - Adiciona automaticamente os dispositivos (MACs) ao **MAC Filtering da rede "Câmara"**
+  - Autoriza os dispositivos na rede via API do UniFi Controller
+
+- ❌ Ao excluir um usuário comissionado:
+  - Remove os MACs da lista de filtragem
+  - Revoga a autorização do dispositivo
+
+---
+
+## 🔧 Integração com UniFi Controller
+
+### Requisições
+- **Autorização:**  
+  Endpoint: `/api/s/default/cmd/stamgr`  
+  Payload: `{ "cmd": "authorize-guest", "mac": "<mac_address>", "minutes": 0 }`
+
+- **Revogação:**  
+  Endpoint: `/api/s/default/cmd/stamgr`  
+  Payload: `{ "cmd": "unauthorize-guest", "mac": "<mac_address>" }`
+
+- **MAC Filtering:**  
+  Endpoint: `/api/s/default/rest/wlanconf/<wlan_id>`  
+  Campos utilizados:
+  - `"mac_filter_enabled": true`
+  - `"mac_filter_policy": "allow"`
+  - `"mac_filter_list"`: lista de MACs autorizados
+  - `"name"` (SSID alvo): `"wifi"`
+
+### Requisitos de Configuração
+- A rede "wifi" deve estar com:
+  - MAC Filtering **habilitado**
+  - Modo **"Allow"** selecionado
+- O sistema usa autenticação por sessão com o UniFi Controller (sem necessidade de Gateway)
+
+---
+
+## 🧠 Lógica de Sinais (`signals.py`)
+- Após salvar um usuário:
+  - Se vínculo for `comissionado`, os dispositivos são automaticamente autorizados e incluídos na whitelist.
+- Após deletar um usuário `comissionado`:
+  - Seus dispositivos são removidos da whitelist e têm o acesso revogado.
+- Usuários `efetivos` não são automaticamente removidos (segurança institucional).
+
+---
+
+## ✅ Como Testar
+1. Crie um novo usuário com MACs válidos no Django Admin.
+2. Acesse o UniFi Controller e verifique:
+   - A presença dos MACs no MAC Filter da rede "Câmara"
+   - A autorização ativa dos dispositivos
+3. Delete o usuário (se comissionado) e confirme a remoção dos dispositivos do sistema.
+
+---
+
+## 🛡️ Segurança
+- A comunicação com o UniFi Controller é autenticada por sessão segura.
+- Nenhuma credencial sensível é exposta no código-fonte (use variáveis de ambiente).
+- Apenas usuários autorizados podem acessar o Django Admin.
+
+---
+
+## 📌 Observações
+- O sistema **funciona sem o uso de um UniFi Gateway**.
+- O roteador MikroTik é responsável pelo DHCP.
+- A autenticação se baseia **exclusivamente no MAC Address** do dispositivo.
+
+---
+
 
 ## Instalação
 
