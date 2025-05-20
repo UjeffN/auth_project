@@ -1,9 +1,10 @@
 from django.contrib import admin
 from django.contrib import messages
-from .models import UniFiUser, Dispositivo
 from .unifi_api import UniFiControllerAPI
 from django.conf import settings
 import urllib3
+from .models import UniFiUser, Dispositivo, UnifiUserStatus
+
 
 # Desabilitar avisos de SSL para certificados auto-assinados
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -124,3 +125,9 @@ class DispositivoAdmin(admin.ModelAdmin):
         except Exception as e:
             messages.error(request, f'Erro ao desautorizar dispositivo no UniFi Controller: {str(e)}')
         super().delete_model(request, obj)
+
+@admin.register(UnifiUserStatus)
+class UnifiUserStatusAdmin(admin.ModelAdmin):
+    list_display = ('user', 'mac_address', 'cadastrado_unifi', 'data_cadastro')
+    list_filter = ('cadastrado_unifi',)
+    search_fields = ('user__username', 'mac_address')

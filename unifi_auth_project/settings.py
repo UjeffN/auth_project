@@ -28,12 +28,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'sua-chave-secreta-aqui')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = True
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.48.100', '164.163.222.7']
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 
 
@@ -113,9 +116,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'pt-br'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
@@ -133,11 +136,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # UniFi Controller settings
-UNIFI_BASE_URL = os.getenv('UNIFI_BASE_URL', 'https://unifi:8443')
-UNIFI_USERNAME = os.getenv('UNIFI_USERNAME', 'admin')
-UNIFI_PASSWORD = os.getenv('UNIFI_PASSWORD', '')
+UNIFI_BASE_URL = os.getenv('UNIFI_BASE_URL', 'https://unifi.parauapebas.pa.leg.br:8443')
+UNIFI_USERNAME = os.getenv('UNIFI_USERNAME', 'jueferson.souto')
+UNIFI_PASSWORD = os.getenv('UNIFI_PASSWORD', 'cmp@2023')
 UNIFI_SITE = os.getenv('UNIFI_SITE', 'default')
 UNIFI_VERIFY_SSL = os.getenv('UNIFI_VERIFY_SSL', 'false').lower() == 'true'
-UNIFI_BASE_URL = 'https://unifi.parauapebas.pa.leg.br:8443'
-UNIFI_USERNAME = 'jueferson.souto'
-UNIFI_PASSWORD = 'cmp@2023'
+
