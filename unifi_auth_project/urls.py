@@ -16,7 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.shortcuts import redirect
+from django.contrib.auth import views as auth_views
+from unifi_auth_app import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),  # Admin do Django
+    path('login/', auth_views.LoginView.as_view(template_name='admin/login.html'), name='login'),
+    path('api/authorize/', views.authorize_guest_api, name='authorize_guest_api'),  # API de autorização
 ]

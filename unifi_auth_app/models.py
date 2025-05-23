@@ -1,15 +1,17 @@
+import logging
 from django.db import models
 from django.core.exceptions import ValidationError
-import re
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
+from django.utils import timezone
+from django.conf import settings
 
+
+# === Funções auxiliares para validar MAC Address ===
 def format_mac_address(value):
     """Converte o MAC address para o formato padrão XX:XX:XX:XX:XX:XX em maiúsculas"""
-    # Remove todos os separadores
     clean_mac = ''.join(c for c in value if c.isalnum())
-    
-    # Encontra caracteres inválidos
+
     invalid_chars = set(clean_mac) - set('0123456789ABCDEFabcdef')
     if invalid_chars:
         chars_list = ', '.join(sorted(invalid_chars))
@@ -17,50 +19,21 @@ def format_mac_address(value):
             f'MAC address contém caracteres inválidos: {chars_list}. '
             'Use apenas números (0-9) e letras de A até F'
         )
-    
-    # Verifica se tem 12 caracteres (6 bytes)
+
     if len(clean_mac) != 12:
         raise ValidationError(
             f'MAC address deve ter 12 caracteres hexadecimais, mas tem {len(clean_mac)}. '
             'Formato esperado: XX:XX:XX:XX:XX:XX'
         )
-    
-    # Converte para maiúsculas e insere os dois pontos
+
     return ':'.join(clean_mac[i:i+2].upper() for i in range(0, 12, 2))
+
 
 def validate_mac_address(value):
     return format_mac_address(value)
 
-class Dispositivo(models.Model):
-    usuario = models.ForeignKey('UniFiUser', on_delete=models.CASCADE, related_name='dispositivos')
-    mac_address = models.CharField(
-        'MAC Address',
-        max_length=17,
-        unique=True,
-        validators=[validate_mac_address],
-        help_text='Formato: XX:XX:XX:XX:XX:XX ou XX-XX-XX-XX-XX-XX (pode usar maiúsculas ou minúsculas)'
-    )
-    nome_dispositivo = models.CharField('Nome do Dispositivo', max_length=100)
-    created_at = models.DateTimeField('Data de Criação', auto_now_add=True)
 
-    def clean(self):
-        # Padroniza o formato do MAC address antes da validação
-        if self.mac_address:
-            self.mac_address = format_mac_address(self.mac_address)
-        super().clean()
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name = 'Dispositivo'
-        verbose_name_plural = 'Dispositivos'
-        ordering = ['usuario__nome', 'nome_dispositivo']
-
-    def __str__(self):
-        return f"{self.nome_dispositivo} - {self.mac_address} ({self.usuario.nome})"
-
+# === Modelo de Departamento com ordenação personalizada ===
 class Departamento(models.TextChoices):
     PRL = 'PRL', _('Presidência Legislativa')
     CER = 'CER', _('Cerimonial')
@@ -93,7 +66,7 @@ class Departamento(models.TextChoices):
     GAB5 = 'GAB5', _('SADISVAN')
     GAB6 = 'GAB6', _('FRANCISCO ELOÉCIO')
     GAB7 = 'GAB7', _('ZÉ DA LATA')
-    GAB8 = 'GAB8', _('ALÉX OHANA')
+    GAB8 = 'GAB8', _('ALEX OHANA')
     GAB9 = 'GAB9', _('FRED SANSÃO')
     GAB10 = 'GAB10', _('ZÉ DO BODE')
     GAB11 = 'GAB11', _('LEANDRO CHIQUITO')
@@ -103,13 +76,28 @@ class Departamento(models.TextChoices):
     GAB15 = 'GAB15', _('ELIAS DA CONSTRUFORTE')
     GAB16 = 'GAB16', _('ANDERSON MORATÓRIO')
     GAB17 = 'GAB17', _('ÉRICA RIBEIRO')
+
+    @classmethod
+    def ordered_choices(cls):
+        return sorted(cls.choices, key=lambda choice: choice[1])
+
+
+# === Modelo do Usuário ===
 class UniFiUser(models.Model):
     nome = models.CharField('Nome', max_length=100)
-    matricula = models.CharField('Matrícula', max_length=20, unique=True)
+
+    matricula = models.CharField(
+        'Matrícula',
+        max_length=20,
+        blank=True,
+        null=True,
+        unique=False  # Pode mudar depois com regra de negócio
+    )
+
     departamento = models.CharField(
         'Departamento',
         max_length=15,
-        choices=Departamento.choices,
+        choices=Departamento.ordered_choices(),
         default=None
     )
 
@@ -126,12 +114,6 @@ class UniFiUser(models.Model):
 
     created_at = models.DateTimeField('Data de Criação', auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.nome} ({self.vinculo})"
-
-
-
-
     class Meta:
         verbose_name = 'Usuário UniFi'
         verbose_name_plural = 'Usuários UniFi'
@@ -139,15 +121,48 @@ class UniFiUser(models.Model):
 
     def get_departamento_display_full(self):
         return f"{self.departamento} - {self.get_departamento_display()}"
+    
+    def save(self, *args, **kwargs):
+        if self.nome:
+            self.nome = self.nome.upper()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nome} - {self.matricula}"
 
+
+# === Modelo de Dispositivo ===
+class Dispositivo(models.Model):
+    usuario = models.ForeignKey('UniFiUser', on_delete=models.CASCADE, related_name='dispositivos')
+    mac_address = models.CharField(
+        'MAC Address',
+        max_length=17,
+        unique=True,
+        validators=[validate_mac_address],
+        help_text='Formato: XX:XX:XX:XX:XX:XX ou XX-XX-XX-XX-XX-XX (pode usar maiúsculas ou minúsculas)'
+    )
+    nome_dispositivo = models.CharField('Nome do Dispositivo', max_length=100)
+    created_at = models.DateTimeField('Data de Criação', auto_now_add=True)
+
+    def clean(self):
+        if self.mac_address:
+            self.mac_address = format_mac_address(self.mac_address)
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Dispositivo'
+        verbose_name_plural = 'Dispositivos'
+        ordering = ['usuario__nome', 'nome_dispositivo']
+
+    def __str__(self):
+        return f"{self.nome_dispositivo} - {self.mac_address} ({self.usuario.nome})"
+
+
+# === Modelo auxiliar: Status no UniFi Controller ===
 class UnifiUserStatus(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     mac_address = models.CharField(max_length=17, unique=True)  # formato: AA:BB:CC:DD:EE:FF
-    cadastrado_unifi = models.BooleanField(default=False)
-    data_cadastro = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f'{self.user.username} - {self.mac_address}'

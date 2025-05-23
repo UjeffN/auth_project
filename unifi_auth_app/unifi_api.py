@@ -1,7 +1,7 @@
 import requests
 
 class UniFiControllerAPI:
-    def __init__(self, base_url='https://unifi.parauapebas.pa.leg.br:8443', site='default', username='jueferson.souto', password='cmp@2023', verify_ssl=False):
+    def __init__(self, base_url, site, username, password, verify_ssl=False):
         self.base_url = base_url
         self.site = site
         self.username = username
