@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'sua-chave-secreta-aqui')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True  # Temporariamente True para servir arquivos estáticos
 
 ALLOWED_HOSTS = ['192.168.48.2', 'localhost', '127.0.0.1', 'portal.parauapebas.pa.leg.br', '.parauapebas.pa.leg.br', 'https://192.168.48.2:8447', '192.168.48.100', '164.163.222.7', 'auth.parauapebas.pa.leg.br']  # O ponto no início permite todos os subdomínios
 
@@ -36,11 +36,28 @@ ALLOWED_HOSTS = ['192.168.48.2', 'localhost', '127.0.0.1', 'portal.parauapebas.p
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Diretórios de arquivos estáticos
-STATICFILES_DIRS = []
+# Diretórios adicionais de arquivos estáticos
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # Diretório global para arquivos estáticos compartilhados
+]
+
+# Configuração para servir arquivos estáticos em produção
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# Configurações de segurança para arquivos estáticos
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None  # Desativa COOP para desenvolvimento
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+CSP_INCLUDE_NONCE_IN = ['script-src']
+CSP_DEFAULT_SRC = ["'self'"]
+
+
+# Finders de arquivos estáticos
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
 
 # Configurações do Admin
-ADMIN_MEDIA_PREFIX = '/static/admin/'
 ADMIN_SITE_HEADER = 'Administração do UniFi Auth'
 ADMIN_SITE_TITLE = 'UniFi Auth'
 ADMIN_INDEX_TITLE = 'Bem-vindo ao UniFi Auth'
@@ -58,17 +75,19 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesSto
 # Application definition
 
 INSTALLED_APPS = [
+    'django_prometheus',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'unifi_auth_app',
+    'unifi_auth_app'
 ]
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -76,6 +95,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'unifi_auth_project.urls'
@@ -138,8 +158,16 @@ WSGI_APPLICATION = 'unifi_auth_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'unifi_auth_db',
+        'USER': 'unifi_auth_user',
+        'PASSWORD': 'sua_senha_segura',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
     }
 }
 
@@ -185,7 +213,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # UniFi Controller settings
 UNIFI_CONTROLLER_CONFIG = {
-    'IP': os.getenv('UNIFI_CONTROLLER_IP', 'unifi.parauapebas.pa.leg.br'),
+    'IP': os.getenv('UNIFI_CONTROLLER_IP', '192.168.48.2'),
     'PORT': os.getenv('UNIFI_CONTROLLER_PORT', '8447'),
     'VERSION': os.getenv('UNIFI_CONTROLLER_VERSION', 'api'),
     'SITE_ID': os.getenv('UNIFI_SITE_ID', 'default'),
