@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'sua-chave-secreta-aqui')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Temporariamente True para servir arquivos estáticos
 
-ALLOWED_HOSTS = ['192.168.48.2', 'localhost', '127.0.0.1', 'portal.parauapebas.pa.leg.br', '.parauapebas.pa.leg.br', 'https://192.168.48.2:8447', '192.168.48.100', '164.163.222.7', 'auth.parauapebas.pa.leg.br']  # O ponto no início permite todos os subdomínios
+ALLOWED_HOSTS = ['192.168.48.2', '192.168.48.3', 'localhost', '127.0.0.1', 'portal.parauapebas.pa.leg.br', '.parauapebas.pa.leg.br', 'https://192.168.48.2:8447', '192.168.48.100', '164.163.222.7', 'auth.parauapebas.pa.leg.br']  # O ponto no início permite todos os subdomínios
 
 # Configurações de arquivos estáticos
 STATIC_URL = '/static/'
