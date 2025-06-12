@@ -1,0 +1,203 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n %}
+
+{% block breadcrumb_links %}
+    &rsaquo; 
+    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}">{% trans 'Dispositivos' %}</a>
+    &rsaquo; {% trans 'Detalhes do Dispositivo' %}
+{% endblock %}
+
+{% block content_title %}
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>{% trans 'Detalhes do Dispositivo' %}</h1>
+        <div>
+            <a href="{% url 'unifi_auth_app:visitante_dispositivo_update' dispositivo.pk %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil"></i> {% trans 'Editar' %}
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content_main %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-pc-display me-2"></i>
+                {% trans 'Informações do Dispositivo' %}
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <th style="width: 30%">{% trans 'Visitante' %}</th>
+                                <td>
+                                    <a href="{% url 'admin:unifi_auth_app_visitante_change' dispositivo.visitante.id %}" target="_blank">
+                                        {{ dispositivo.visitante.nome }}
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{% trans 'Nome do Dispositivo' %}</th>
+                                <td>{{ dispositivo.visitante_nome_dispositivo|default:_("Sem nome") }}</td>
+                            </tr>
+                            <tr>
+                                <th>{% trans 'Endereço MAC' %}</th>
+                                <td class="mac-address">{{ dispositivo.visitante_mac_address }}</td>
+                            </tr>
+                            <tr>
+                                <th>{% trans 'Status' %}</th>
+                                <td>
+                                    {% if dispositivo.visitante_dispositivo_ativo %}
+                                        <span class="badge bg-success">{% trans 'Ativo' %}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{% trans 'Inativo' %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{% trans 'Data de Cadastro' %}</th>
+                                <td>{{ dispositivo.visitante_data_cadastro|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <th>{% trans 'Último Acesso' %}</th>
+                                <td>
+                                    {% if dispositivo.visitante_ultimo_acesso %}
+                                        {{ dispositivo.visitante_ultimo_acesso|date:"d/m/Y H:i" }}
+                                    {% else %}
+                                        {% trans 'Nunca' %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> {% trans 'Voltar para a lista' %}
+                    </a>
+                    <div>
+                        {% if dispositivo.visitante_dispositivo_ativo %}
+                            <a href="{% url 'unifi_auth_app:visitante_dispositivo_toggle_status' dispositivo.pk %}" 
+                               class="btn btn-warning"
+                               onclick="return confirm('{% trans 'Tem certeza que deseja desativar este dispositivo?' %}')">
+                                <i class="bi bi-x-lg me-1"></i> {% trans 'Desativar' %}
+                            </a>
+                        {% else %}
+                            <a href="{% url 'unifi_auth_app:visitante_dispositivo_toggle_status' dispositivo.pk %}" 
+                               class="btn btn-success"
+                               onclick="return confirm('{% trans 'Tem certeza que deseja ativar este dispositivo?' %}')">
+                                <i class="bi bi-check-lg me-1"></i> {% trans 'Ativar' %}
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'unifi_auth_app:visitante_dispositivo_delete' dispositivo.pk %}" 
+                           class="btn btn-danger ms-2"
+                           onclick="return confirm('{% trans 'Tem certeza que deseja excluir permanentemente este dispositivo? Esta ação não pode ser desfeita.' %}')">
+                            <i class="bi bi-trash me-1"></i> {% trans 'Excluir' %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Histórico de Acessos (pode ser implementado posteriormente) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history me-2"></i>
+                {% trans 'Histórico de Acessos' %}
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    {% trans 'O histórico de acessos será exibido aqui em uma versão futura.' %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person me-2"></i>
+                {% trans 'Informações do Visitante' %}
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-shrink-0">
+                        <div class="avatar avatar-lg bg-light text-primary rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-person-fill" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 class="mb-0">{{ dispositivo.visitante.nome }}</h5>
+                        <div class="text-muted">{{ dispositivo.visitante.email }}</div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="bi bi-telephone me-2"></i>
+                        {{ dispositivo.visitante.telefone|default:_("Não informado") }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-calendar-event me-2"></i>
+                        {% trans 'Cadastrado em' %}: {{ dispositivo.visitante.data_acesso|date:"d/m/Y" }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-pc-display me-2"></i>
+                        {% trans 'Dispositivos ativos' %}: 
+                        <span class="badge bg-primary">
+                            {{ dispositivo.visitante.visitante_dispositivos.filter(visitante_dispositivo_ativo=True).count }}/3
+                        </span>
+                    </li>
+                </ul>
+                
+                <div class="mt-3">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_create' %}?visitante={{ dispositivo.visitante.id }}" 
+                       class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-plus-lg me-1"></i> {% trans 'Adicionar Dispositivo' %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-shield-lock me-2"></i>
+                {% trans 'Informações Técnicas' %}
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <strong>ID:</strong> 
+                        <span class="text-muted">{{ dispositivo.id }}</span>
+                    </li>
+                    <li class="mb-2">
+                        <strong>{% trans 'Endereço IP' %}:</strong> 
+                        <span class="text-muted">{{ dispositivo.visitante.ip_address|default:_("Não disponível") }}</span>
+                    </li>
+                    <li class="mb-2">
+                        <strong>{% trans 'Endereço MAC' %}:</strong> 
+                        <span class="text-muted mac-address">{{ dispositivo.visitante_mac_address }}</span>
+                    </li>
+                    <li class="mb-2">
+                        <strong>{% trans 'Fabricante' %}:</strong> 
+                        <span class="text-muted">
+                            {% if dispositivo.visitante_mac_address %}
+                                {% comment %} Aqui pode ser implementada uma busca por OUI (Organizationally Unique Identifier) {% endcomment %}
+                                {% trans 'Desconhecido' %}
+                            {% else %}
+                                {% trans 'Não disponível' %}
+                            {% endif %}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

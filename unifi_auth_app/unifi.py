@@ -50,6 +50,48 @@ class UnifiController:
             logger.error(f'Erro ao fazer login no UniFi Controller: {str(e)}')
             return False
 
+    def get_client_info(self, mac_address):
+        """Obtém informações de um cliente específico pelo endereço MAC"""
+        try:
+            if not self.logged_in:
+                logger.info('Não está logado, fazendo login primeiro...')
+                if not self.login():
+                    logger.error('Falha ao fazer login')
+                    return None
+
+            # Formata o MAC para o formato esperado pela API (sem pontos ou traços)
+            mac_address = mac_address.lower().replace(':', '').replace('-', '')
+            
+            # Primeiro tenta obter a lista de clientes ativos
+            clients_url = f"{self.base_url}/api/s/{self.site_id}/stat/sta"
+            logger.info(f'Obtendo informações do cliente {mac_address} em: {clients_url}')
+            
+            response = self.session.get(clients_url)
+            logger.info(f'Response Status: {response.status_code}')
+            
+            if response.status_code == 200:
+                clients_data = response.json()
+                logger.info(f'Dados dos clientes: {clients_data}')
+                
+                # Procura o cliente pelo MAC
+                for client in clients_data.get('data', []):
+                    client_mac = client.get('mac', '').lower().replace(':', '').replace('-', '')
+                    if client_mac == mac_address:
+                        logger.info(f'Cliente encontrado: {client}')
+                        return client
+                
+                logger.warning(f'Cliente com MAC {mac_address} não encontrado na lista de clientes ativos')
+                return None
+                
+            else:
+                logger.error(f'Erro ao obter lista de clientes. Status: {response.status_code}')
+                logger.error(f'Response: {response.text}')
+                return None
+                
+        except Exception as e:
+            logger.error(f'Erro ao obter informações do cliente: {str(e)}')
+            return None
+
     def authorize_guest(self, mac_address, ap_mac, minutes):
         """Autoriza um cliente no UniFi Controller"""
         try:

@@ -1,0 +1,157 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n crispy_forms_tags %}
+
+{% block breadcrumb_links %}
+    &rsaquo; 
+    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}">{% trans 'Dispositivos' %}</a>
+    &rsaquo; {% if form.instance.pk %}{% trans 'Editar Dispositivo' %}{% else %}{% trans 'Adicionar Dispositivo' %}{% endif %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% if form.instance.pk %}{% trans 'Editar Dispositivo de Visitante' %}{% else %}{% trans 'Adicionar Novo Dispositivo' %}{% endif %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pc-display me-2"></i>
+                {% if form.instance.pk %}
+                    {% trans 'Editar Dispositivo' %}
+                {% else %}
+                    {% trans 'Informações do Dispositivo' %}
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="post" id="dispositivo-form">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.visitante|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.visitante_mac_address|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            {{ form.visitante_nome_dispositivo|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.visitante_dispositivo_ativo|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> {% trans 'Voltar' %}
+                        </a>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i> {% trans 'Salvar' %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>
+                {% trans 'Ajuda' %}
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{% trans 'Sobre Dispositivos de Visitantes' %}</h6>
+                <p class="card-text small">
+                    {% trans 'Cada visitante pode ter até 3 dispositivos ativos associados à sua conta.' %}
+                    {% trans 'Os dispositivos inativos não contam para este limite.' %}
+                </p>
+                
+                <h6 class="card-title mt-3">{% trans 'Endereço MAC' %}</h6>
+                <p class="card-text small">
+                    {% trans 'O endereço MAC deve estar no formato:' %}
+                    <code>00:11:22:33:44:55</code> {% trans 'ou' %} <code>00-11-22-33-44-55</code>.
+                </p>
+                
+                {% if form.instance.pk %}
+                    <hr>
+                    <ul class="list-unstyled small text-muted">
+                        <li><strong>{% trans 'Cadastrado em:' %}</strong> {{ form.instance.visitante_data_cadastro|date:"d/m/Y H:i" }}</li>
+                        <li><strong>{% trans 'Último acesso:' %}</strong> 
+                            {% if form.instance.visitante_ultimo_acesso %}
+                                {{ form.instance.visitante_ultimo_acesso|date:"d/m/Y H:i" }}
+                            {% else %}
+                                {% trans 'Nunca' %}
+                            {% endif %}
+                        </li>
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formata o MAC address enquanto o usuário digita
+    const macInput = document.getElementById('id_visitante_mac_address');
+    
+    if (macInput) {
+        macInput.addEventListener('input', function(e) {
+            // Remove qualquer caractere que não seja número ou letra
+            let value = e.target.value.replace(/[^a-fA-F0-9]/g, '').toUpperCase();
+            
+            // Adiciona os dois pontos a cada 2 caracteres
+            let formattedValue = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 2 === 0 && i < 12) {
+                    formattedValue += ':';
+                }
+                formattedValue += value[i];
+            }
+            
+            // Atualiza o valor do campo
+            e.target.value = formattedValue;
+        });
+    }
+    
+    // Validação do formulário
+    const form = document.getElementById('dispositivo-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Validação adicional pode ser adicionada aqui
+            const macInput = document.getElementById('id_visitante_mac_address');
+            if (macInput) {
+                const macValue = macInput.value.trim();
+                // Verifica se o MAC tem o formato correto (XX:XX:XX:XX:XX:XX ou XX-XX-XX-XX-XX-XX)
+                const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+                if (macValue && !macRegex.test(macValue)) {
+                    e.preventDefault();
+                    alert('{% trans "Formato de endereço MAC inválido. Use o formato XX:XX:XX:XX:XX:XX ou XX-XX-XX-XX-XX-XX" %}');
+                    macInput.focus();
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+});
+</script>
+{% endblock %}

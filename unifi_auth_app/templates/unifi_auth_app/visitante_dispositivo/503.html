@@ -1,0 +1,110 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n static %}
+
+{% block breadcrumb_links %}
+    &rsaquo; {% trans 'Serviço Indisponível' %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Serviço Indisponível' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <div class="avatar avatar-xl bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                
+                <h2 class="h4 mb-3">{% trans 'Erro 503 - Serviço Indisponível' %}</h2>
+                <p class="text-muted mb-4">
+                    {% trans 'O serviço está temporariamente indisponível devido a manutenção ou sobrecarga. Por favor, tente novamente mais tarde.' %}
+                </p>
+                
+                <div class="alert alert-warning text-start mb-4">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0 me-3">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">{% trans 'Informações Adicionais' %}</h5>
+                            <p class="mb-0">
+                                {% now "DATETIME_FORMAT" as current_time %}
+                                {% blocktrans %}
+                                    Horário atual: <strong>{{ current_time }}</strong><br>
+                                    Status: <span class="badge bg-warning">{% trans 'Manutenção em Andamento' %}</span>
+                                {% endblocktrans %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise me-1"></i> {% trans 'Tentar Novamente' %}
+                    </a>
+                    
+                    <a href="#" onclick="window.history.back(); return false;" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-return-left me-1"></i> {% trans 'Voltar' %}
+                    </a>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="progress" style="height: 5px;">
+                        <div id="maintenanceProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p class="text-muted small mt-2">
+                        <i class="bi bi-clock-history me-1"></i>
+                        <span id="timeRemaining">{% trans 'Estimando tempo restante...' %}</span>
+                    </p>
+                </div>
+                
+                <div class="mt-4 text-muted small">
+                    <p class="mb-1">
+                        <i class="bi bi-envelope me-1"></i>
+                        {% trans 'Para mais informações, entre em contato com o suporte:' %}
+                        <a href="mailto:suporte@exemplo.com" class="text-decoration-none">suporte@exemplo.com</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Simula uma barra de progresso de manutenção
+    const progressBar = document.getElementById('maintenanceProgress');
+    const timeRemaining = document.getElementById('timeRemaining');
+    let progress = 0;
+    const interval = setInterval(function() {
+        progress += Math.random() * 10;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            timeRemaining.innerHTML = '{% trans "Manutenção concluída! Atualize a página." %}';
+            progressBar.classList.remove('bg-warning');
+            progressBar.classList.add('bg-success');
+            
+            // Atualiza a mensagem e adiciona botão de recarregar
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'mt-3';
+            buttonsDiv.innerHTML = `
+                <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-success">
+                    <i class="bi bi-arrow-repeat me-1"></i> {% trans 'Recarregar Página' %}
+                </a>
+            `;
+            progressBar.parentElement.parentElement.appendChild(buttonsDiv);
+        } else {
+            const minutes = Math.floor((100 - progress) / 5);
+            timeRemaining.textContent = `{% trans 'Tempo estimado: ' %}${minutes} {% trans 'minutos restantes' %}`;
+        }
+        progressBar.style.width = `${progress}%`;
+    }, 1000);
+});
+</script>
+{% endblock %}

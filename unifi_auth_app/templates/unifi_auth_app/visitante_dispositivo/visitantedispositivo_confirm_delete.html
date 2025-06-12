@@ -1,0 +1,99 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n %}
+
+{% block breadcrumb_links %}
+    &rsaquo; 
+    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}">{% trans 'Dispositivos' %}</a>
+    &rsaquo; 
+    <a href="{% url 'unifi_auth_app:visitante_dispositivo_detail' object.pk %}">{{ object.visitante_nome_dispositivo|default:object.visitante_mac_address }}</a>
+    &rsaquo; {% trans 'Confirmar Exclusão' %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Confirmar Exclusão' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                {% trans 'Atenção: Esta ação é irreversível!' %}
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{% trans 'Você tem certeza que deseja excluir este dispositivo?' %}</h5>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {% trans 'Esta ação não pode ser desfeita. Todos os dados relacionados a este dispositivo serão permanentemente removidos.' %}
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">{% trans 'Dispositivo a ser excluído' %}</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="avatar avatar-lg bg-light text-primary rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-pc-display" style="font-size: 1.25rem;"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1">
+                                    {{ object.visitante_nome_dispositivo|default:_("Dispositivo sem nome") }}
+                                </h5>
+                                <p class="mb-1 text-muted">
+                                    <span class="mac-address">{{ object.visitante_mac_address }}</span>
+                                </p>
+                                <p class="mb-0">
+                                    <span class="badge {% if object.visitante_dispositivo_ativo %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if object.visitante_dispositivo_ativo %}{% trans 'Ativo' %}{% else %}{% trans 'Inativo' %}{% endif %}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">{% trans 'Visitante' %}</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="avatar avatar-lg bg-light text-primary rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person-fill" style="font-size: 1.25rem;"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1">{{ object.visitante.nome }}</h5>
+                                <p class="mb-1 text-muted">{{ object.visitante.email }}</p>
+                                <p class="mb-0">
+                                    <span class="badge bg-primary">
+                                        {% blocktrans count counter=object.visitante.visitante_dispositivos.count %}
+                                            {{ counter }} dispositivo
+                                        {% plural %}
+                                            {{ counter }} dispositivos
+                                        {% endblocktrans %}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'unifi_auth_app:visitante_dispositivo_detail' object.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> {% trans 'Cancelar' %}
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i> {% trans 'Sim, excluir permanentemente' %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n static %}
+
+{% block breadcrumb_links %}
+    &rsaquo; {% trans 'Acesso Negado' %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Acesso Negado' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-warning">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <div class="avatar avatar-xl bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="bi bi-shield-lock" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                
+                <h2 class="h4 mb-3">{% trans 'Erro 403 - Acesso Negado' %}</h2>
+                <p class="text-muted mb-4">
+                    {% trans 'Você não tem permissão para acessar esta página ou executar esta ação.' %}
+                </p>
+                
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-primary">
+                        <i class="bi bi-house-door me-1"></i> {% trans 'Página Inicial' %}
+                    </a>
+                    
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'admin:logout' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-box-arrow-right me-1"></i> {% trans 'Sair' %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'admin:login' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> {% trans 'Entrar' %}
+                        </a>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4 text-muted small">
+                    <p class="mb-1">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {% trans 'Se você acredita que deveria ter acesso a esta página, entre em contato com o administrador do sistema.' %}
+                    </p>
+                    {% if user.is_authenticated %}
+                        <p class="mb-0">
+                            <i class="bi bi-person me-1"></i>
+                            {% blocktrans with username=user.get_username %}
+                                Você está logado como: <strong>{{ username }}</strong>
+                            {% endblocktrans %}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

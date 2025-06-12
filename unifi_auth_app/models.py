@@ -179,15 +179,165 @@ class Dispositivo(models.Model):
 # Consulte user_status.py para a definição de UnifiUserStatus  # formato: AA:BB:CC:DD:EE:FF
 
 
+class VisitanteDispositivo(models.Model):
+    """
+    Modelo para armazenar os dispositivos associados a um visitante.
+    Um visitante pode ter até 3 dispositivos ativos associados.
+    """
+    visitante = models.ForeignKey(
+        'Visitante',
+        on_delete=models.CASCADE,
+        related_name='visitante_dispositivos',
+        verbose_name='Visitante',
+        help_text='Visitante ao qual este dispositivo está associado'
+    )
+    
+    visitante_mac_address = models.CharField(
+        'Endereço MAC do Dispositivo',
+        max_length=17,
+        validators=[validate_mac_address],
+        help_text='Endereço MAC do dispositivo do visitante. Formato: XX:XX:XX:XX:XX:XX'
+    )
+    
+    visitante_nome_dispositivo = models.CharField(
+        'Nome do Dispositivo',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Nome amigável para identificar o dispositivo (opcional)'
+    )
+    
+    visitante_data_cadastro = models.DateTimeField(
+        'Data de Cadastro',
+        auto_now_add=True,
+        help_text='Data e hora em que o dispositivo foi cadastrado'
+    )
+    
+    visitante_ultimo_acesso = models.DateTimeField(
+        'Último Acesso',
+        auto_now=True,
+        help_text='Data e hora do último acesso do dispositivo'
+    )
+    
+    visitante_dispositivo_ativo = models.BooleanField(
+        'Dispositivo Ativo',
+        default=True,
+        help_text='Indica se o dispositivo está atualmente autorizado'
+    )
+    
+    class Meta:
+        verbose_name = 'Dispositivo de Visitante'
+        verbose_name_plural = 'Dispositivos de Visitantes'
+        unique_together = ('visitante', 'visitante_mac_address')
+        ordering = ['-visitante_ultimo_acesso']
+    
+    def __str__(self):
+        nome = self.visitante_nome_dispositivo or 'Dispositivo sem nome'
+        return f"{nome} ({self.visitante_mac_address}) - {self.visitante.nome}"
+    
+    def clean(self):
+        """
+        Validações adicionais do modelo.
+        """
+        # Aplica a formatação do MAC address
+        if self.visitante_mac_address:
+            self.visitante_mac_address = format_mac_address(self.visitante_mac_address)
+        
+        # Se for uma atualização e o dispositivo já existir, verifica se está sendo ativado
+        if self.pk:
+            try:
+                old_instance = VisitanteDispositivo.objects.get(pk=self.pk)
+                if not old_instance.visitante_dispositivo_ativo and self.visitante_dispositivo_ativo:
+                    # Verifica se o visitante já tem 3 dispositivos ativos
+                    if self.visitante.visitante_dispositivos.filter(
+                        visitante_dispositivo_ativo=True
+                    ).exclude(pk=self.pk).count() >= 3:
+                        raise ValidationError({
+                            'visitante_dispositivo_ativo': 
+                                'Este visitante já possui o número máximo de dispositivos ativos (3).'
+                        })
+            except VisitanteDispositivo.DoesNotExist:
+                pass
+        
+        # Se for um novo registro ou estiver sendo ativado
+        if not self.pk or (self.pk and self.visitante_dispositivo_ativo):
+            # Verifica se já existe um dispositivo ativo com o mesmo MAC
+            if VisitanteDispositivo.objects.filter(
+                visitante_mac_address=self.visitante_mac_address,
+                visitante_dispositivo_ativo=True
+            ).exclude(pk=self.pk if self.pk else None).exists():
+                raise ValidationError({
+                    'visitante_mac_address': 
+                        'Já existe um dispositivo ativo com este endereço MAC.'
+                })
+            
+            # Verifica se o visitante já tem 3 dispositivos ativos
+            if (self.visitante and 
+                self.visitante.visitante_dispositivos.filter(
+                    visitante_dispositivo_ativo=True
+                ).exclude(pk=self.pk if self.pk else None).count() >= 3):
+                raise ValidationError({
+                    'visitante': 
+                        'Este visitante já possui o número máximo de dispositivos ativos (3).'
+                })
+    
+    def save(self, *args, **kwargs):
+        """
+        Sobrescreve o método save para garantir validações adicionais.
+        """
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
 class Visitante(models.Model):
-    """Modelo para armazenar informações dos visitantes da rede"""
-    nome = models.CharField('Nome Completo', max_length=200)
-    email = models.EmailField('E-mail')
-    telefone = models.CharField('Telefone', max_length=20)
-    mac_address = models.CharField('Endereço MAC', max_length=17)
-    data_acesso = models.DateTimeField('Data e Hora do Acesso', auto_now_add=True)
-    ip_address = models.GenericIPAddressField('Endereço IP', null=True, blank=True)
-    autorizado = models.BooleanField('Autorizado', default=False)
+    """
+    Modelo para armazenar informações dos visitantes da rede.
+    Um visitante pode ter até 3 dispositivos ativos associados.
+    """
+    nome = models.CharField(
+        'Nome Completo',
+        max_length=200,
+        help_text='Nome completo do visitante'
+    )
+    
+    email = models.EmailField(
+        'E-mail',
+        help_text='E-mail para contato do visitante'
+    )
+    
+    telefone = models.CharField(
+        'Telefone',
+        max_length=20,
+        help_text='Telefone para contato do visitante'
+    )
+    
+    data_acesso = models.DateTimeField(
+        'Data e Hora do Acesso',
+        auto_now_add=True,
+        help_text='Data e hora em que o visitante acessou a rede'
+    )
+    
+    ip_address = models.GenericIPAddressField(
+        'Endereço IP',
+        null=True,
+        blank=True,
+        help_text='Endereço IP atribuído ao visitante'
+    )
+    
+    autorizado = models.BooleanField(
+        'Autorizado',
+        default=False,
+        help_text='Indica se o visitante está autorizado a acessar a rede'
+    )
+    
+    # Campo mantido para compatibilidade, mas não será mais usado
+    mac_address = models.CharField(
+        'Endereço MAC (Legado)',
+        max_length=17,
+        blank=True,
+        null=True,
+        help_text='Campo mantido para compatibilidade. Use a tabela de dispositivos para novos registros.'
+    )
     
     class Meta:
         verbose_name = 'Visitante'
@@ -196,3 +346,87 @@ class Visitante(models.Model):
     
     def __str__(self):
         return f"{self.nome} - {self.email} ({self.data_acesso.strftime('%d/%m/%Y %H:%M')})"
+    
+    def adicionar_dispositivo(self, mac_address, nome_dispositivo=None):
+        """
+        Adiciona um novo dispositivo ao visitante.
+        
+        Args:
+            mac_address (str): Endereço MAC do dispositivo
+            nome_dispositivo (str, optional): Nome amigável para o dispositivo
+            
+        Returns:
+            VisitanteDispositivo: O dispositivo criado ou atualizado
+            
+        Raises:
+            ValidationError: Se o visitante já tiver 3 dispositivos ativos
+        """
+        # Verifica se o visitante já tem 3 dispositivos ativos
+        if self.visitante_dispositivos.filter(visitante_dispositivo_ativo=True).count() >= 3:
+            raise ValidationError('Este visitante já possui o número máximo de dispositivos ativos (3).')
+        
+        # Tenta encontrar um dispositivo inativo com o mesmo MAC
+        dispositivo = self.visitante_dispositivos.filter(
+            visitante_mac_address=mac_address
+        ).first()
+        
+        if dispositivo:
+            # Se o dispositivo existe e está inativo, reativa-o
+            if not dispositivo.visitante_dispositivo_ativo:
+                dispositivo.visitante_dispositivo_ativo = True
+                if nome_dispositivo:
+                    dispositivo.visitante_nome_dispositivo = nome_dispositivo
+                dispositivo.save()
+                return dispositivo
+            else:
+                # Dispositivo já existe e está ativo
+                return dispositivo
+        else:
+            # Cria um novo dispositivo
+            return self.visitante_dispositivos.create(
+                visitante_mac_address=mac_address,
+                visitante_nome_dispositivo=nome_dispositivo or f"Dispositivo {self.visitante_dispositivos.count() + 1}"
+            )
+    
+    def remover_dispositivo(self, mac_address):
+        """
+        Remove um dispositivo do visitante (desativa).
+        
+        Args:
+            mac_address (str): Endereço MAC do dispositivo a ser removido
+            
+        Returns:
+            bool: True se o dispositivo foi removido, False caso contrário
+        """
+        dispositivo = self.visitante_dispositivos.filter(
+            visitante_mac_address=mac_address,
+            visitante_dispositivo_ativo=True
+        ).first()
+        
+        if dispositivo:
+            dispositivo.visitante_dispositivo_ativo = False
+            dispositivo.save()
+            return True
+        return False
+    
+    def get_dispositivos_ativos(self):
+        """
+        Retorna a lista de dispositivos ativos do visitante.
+        
+        Returns:
+            QuerySet: Lista de dispositivos ativos ordenados pelo último acesso
+        """
+        return self.visitante_dispositivos.filter(
+            visitante_dispositivo_ativo=True
+        ).order_by('-visitante_ultimo_acesso')
+    
+    def pode_adicionar_dispositivo(self):
+        """
+        Verifica se o visitante pode adicionar mais dispositivos.
+        
+        Returns:
+            bool: True se puder adicionar mais dispositivos, False caso contrário
+        """
+        return self.visitante_dispositivos.filter(
+            visitante_dispositivo_ativo=True
+        ).count() < 3
