@@ -30,8 +30,10 @@ is_superuser = user_passes_test(lambda u: u.is_superuser)
 urlpatterns = [
     path('admin/', admin.site.urls),  # Admin do Django
     path('login/', auth_views.LoginView.as_view(template_name='admin/login.html'), name='login'),
-    path('api/authorize/', views.authorize_guest_api, name='authorize_guest_api'),  # API de autorização
+    
+    # Inclui todas as URLs do app unifi_auth_app, incluindo as APIs
     path('', include('unifi_auth_app.urls')),
+    
     # Endpoint de métricas protegido por autenticação
     path('metrics/', is_superuser(exports.ExportToDjangoView), name='django-prometheus-metrics'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,0 +1,77 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n static %}
+
+{% block breadcrumb_links %}
+    &rsaquo; {% trans 'Sessão Expirada' %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Sessão Expirada' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-warning">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <div class="avatar avatar-xl bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="bi bi-clock-history" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                
+                <h2 class="h4 mb-3">{% trans 'Erro 403 - Sessão Expirada' %}</h2>
+                <p class="text-muted mb-4">
+                    {% trans 'Sua sessão expirou devido à inatividade. Por favor, tente novamente.' %}
+                </p>
+                
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-primary">
+                        <i class="bi bi-house-door me-1"></i> {% trans 'Página Inicial' %}
+                    </a>
+                    
+                    <a href="#" onclick="window.history.back(); return false;" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-return-left me-1"></i> {% trans 'Voltar' %}
+                    </a>
+                </div>
+                
+                <div class="mt-4 text-muted small">
+                    <p class="mb-1">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {% trans 'Dica: Para evitar este problema, tente não deixar o formulário aberto por muito tempo.' %}
+                    </p>
+                    <p class="mb-0">
+                        <i class="bi bi-lightbulb me-1"></i>
+                        {% trans 'Se o problema persistir, tente limpar os cookies do navegador.' %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tenta fazer o refresh da página anterior para obter um novo token CSRF
+function refreshPage() {
+    if (window.history.length > 1) {
+        window.history.back();
+        setTimeout(function() {
+            window.location.reload(true);
+        }, 100);
+    } else {
+        window.location.href = '{% url "unifi_auth_app:visitante_dispositivo_list" %}';
+    }
+}
+
+// Adiciona um listener para o botão de voltar
+document.addEventListener('DOMContentLoaded', function() {
+    var backButton = document.querySelector('a[onclick*="window.history.back"]');
+    if (backButton) {
+        backButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            refreshPage();
+        });
+    }
+});
+</script>
+{% endblock %}

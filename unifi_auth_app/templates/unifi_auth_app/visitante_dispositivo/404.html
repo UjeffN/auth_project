@@ -1,0 +1,48 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n static %}
+
+{% block breadcrumb_links %}
+    &rsaquo; {% trans 'Página não encontrada' %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Página não encontrada' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <div class="avatar avatar-xl bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                
+                <h2 class="h4 mb-3">{% trans 'Erro 404 - Página não encontrada' %}</h2>
+                <p class="text-muted mb-4">
+                    {% trans 'A página que você está tentando acessar não existe ou foi removida.' %}
+                </p>
+                
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-primary">
+                        <i class="bi bi-house-door me-1"></i> {% trans 'Página Inicial' %}
+                    </a>
+                    
+                    <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-speedometer2 me-1"></i> {% trans 'Painel Admin' %}
+                    </a>
+                </div>
+                
+                <div class="mt-4 text-muted small">
+                    <p class="mb-1">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {% trans 'Se você acredita que isso é um erro, entre em contato com o suporte técnico.' %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n %}
+
+{% block breadcrumb_links %}
+    &rsaquo; 
+    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}">{% trans 'Dispositivos' %}</a>
+    &rsaquo; {% trans 'Dispositivo Excluído' %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Dispositivo Excluído com Sucesso' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-success">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <div class="avatar avatar-xl bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="bi bi-check2-circle" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                
+                <h2 class="h4 mb-3">{% trans 'Dispositivo excluído com sucesso!' %}</h2>
+                <p class="text-muted mb-4">
+                    {% trans 'O dispositivo foi removido permanentemente do sistema.' %}
+                </p>
+                
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}" class="btn btn-primary">
+                        <i class="bi bi-list-ul me-1"></i> {% trans 'Voltar para a lista de dispositivos' %}
+                    </a>
+                    
+                    {% if visitante_id %}
+                        <a href="{% url 'admin:unifi_auth_app_visitante_change' visitante_id %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-person me-1"></i> {% trans 'Ver detalhes do visitante' %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

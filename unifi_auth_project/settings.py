@@ -50,9 +50,40 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 CSP_INCLUDE_NONCE_IN = ['script-src']
 CSP_DEFAULT_SRC = ["'self'"]
 
-# Configurações da API
+# Configurações de manipulação de erros personalizados
+CSRF_FAILURE_VIEW = 'unifi_auth_app.views.csrf_failure'
+handler400 = 'unifi_auth_app.views.bad_request'
+handler403 = 'unifi_auth_app.views.permission_denied'
+handler403_csrf = 'unifi_auth_app.views.csrf_failure'
+handler404 = 'unifi_auth_app.views.page_not_found'
+handler500 = 'unifi_auth_app.views.server_error'
+
+# Configurações de CORS
 CORS_ALLOW_ALL_ORIGINS = True  # Em produção, restrinja para os domínios específicos
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-forwarded-for',
+    'x-real-ip',
+    'x-original-ip'
+]
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 horas
 
 # Configurações do UniFi Controller
 UNIFI_CONTROLLER_CONFIG = {
@@ -103,9 +134,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',  # Para lidar com CORS
-    'unifi_auth_app'
+    'unifi_auth_app',
 ]
-X_FRAME_OPTIONS = "SAMEORIGIN"
+
+# Configuração de segurança para iframes
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
@@ -117,8 +150,38 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'unifi_auth_app.security_headers.SecurityHeadersMiddleware',  # Middleware para cabeçalhos de segurança
+    'unifi_auth_app.request_timing.RequestTimingMiddleware',     # Middleware para medição de tempo
+    'unifi_auth_app.middleware.ErrorHandlingMiddleware',         # Middleware para tratamento de erros
+    'unifi_auth_app.audit_logger.APIAuditMiddleware',             # Middleware para auditoria de APIs
+    'unifi_auth_app.middleware.PortalMiddleware',                 # Middleware para controle de acesso
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
+
+# Configurações de desempenho
+SLOW_REQUEST_THRESHOLD = 1.0  # segundos
+SHOW_REQUEST_TIME_HEADER = DEBUG  # Mostrar cabeçalho X-Request-Time apenas em DEBUG
+
+# Configurações de CSP (Content Security Policy)
+CSP_DIRECTIVES = {
+    'default-src': ["'self'"],
+    'script-src': [
+        "'self'", 
+        "'unsafe-inline'",  # Necessário para alguns componentes do Bootstrap/AdminLTE
+        "'unsafe-eval'"     # Necessário para alguns componentes do Django
+    ],
+    'style-src': [
+        "'self'", 
+        "'unsafe-inline'"  # Necessário para estilos inline
+    ],
+    'img-src': ["'self'", 'data:', 'https:'],
+    'font-src': ["'self'", 'data:'],
+    'connect-src': ["'self'"],
+    'frame-ancestors': ["'self'"],
+    'form-action': ["'self'"],
+    'base-uri': ["'self'"],
+    'object-src': ["'none'"],
+}
 
 ROOT_URLCONF = 'unifi_auth_project.urls'
 
@@ -146,29 +209,81 @@ LOGGING = {
             'format': '[{levelname}] {asctime} {module} {message}',
             'style': '{'
         },
+        'audit': {
+            'format': '%(asctime)s [%(levelname)s] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '''
+                %(asctime)s %(levelname)s %(name)s %(message)s
+                [in %(pathname)s:%(lineno)d]"
+            ''',
+            'datefmt': '%Y-%m-%dT%H:%M:%S%z',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
     },
     'handlers': {
         'console': {
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
+            'formatter': 'verbose',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false'],
+            'include_html': True,
         },
         'file': {
-            'class': 'logging.FileHandler',
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': '/opt/auth_project/logs/django.log',
-            'formatter': 'verbose'
-        }
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/opt/auth_project/logs/audit.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 10,
+            'formatter': 'json',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'file', 'mail_admins'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['mail_admins', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
         },
         'unifi_auth_app': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
-            'propagate': True,
-        }
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['audit_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        '': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+        },
     }
 }
 

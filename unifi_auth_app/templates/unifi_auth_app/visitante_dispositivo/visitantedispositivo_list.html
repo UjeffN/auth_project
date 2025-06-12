@@ -1,0 +1,266 @@
+{% extends "unifi_auth_app/visitante_dispositivo/base_visitante_dispositivo.html" %}
+{% load i18n static %}
+
+{% block breadcrumb_links %}
+    {% if search or status %}
+        &rsaquo; 
+        <a href="{% url 'unifi_auth_app:visitante_dispositivo_list' %}">{% trans 'Dispositivos' %}</a>
+        &rsaquo; {% trans 'Pesquisa' %}
+    {% endif %}
+{% endblock %}
+
+{% block content_title %}
+    <h1>{% trans 'Gerenciar Dispositivos de Visitantes' %}</h1>
+{% endblock %}
+
+{% block content_main %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{% trans 'Lista de Dispositivos' %}</span>
+        <div>
+            <a href="{% url 'unifi_auth_app:visitante_dispositivo_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> {% trans 'Adicionar Dispositivo' %}
+            </a>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <!-- Filtros e Busca -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form method="get" class="search-form">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="{% trans 'Buscar por MAC, nome ou visitante...' %}" value="{{ search }}">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <div class="btn-group float-end" role="group">
+                    <a href="?status=ativo" class="btn btn-sm {% if status == 'ativo' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                        {% trans 'Ativos' %} <span class="badge bg-primary">{{ total_ativos }}</span>
+                    </a>
+                    <a href="?status=inativo" class="btn btn-sm {% if status == 'inativo' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+                        {% trans 'Inativos' %} <span class="badge bg-danger">{{ total_inativos }}</span>
+                    </a>
+                    <a href="?" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabela de Dispositivos -->
+        {% if dispositivos %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Visitante' %}</th>
+                            <th>{% trans 'Dispositivo' %}</th>
+                            <th>{% trans 'Endereço MAC' %}</th>
+                            <th>{% trans 'Último Acesso' %}</th>
+                            <th>{% trans 'Status' %}</th>
+                            <th class="text-end">{% trans 'Ações' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dispositivo in dispositivos %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'admin:unifi_auth_app_visitante_change' dispositivo.visitante.id %}" target="_blank">
+                                        {{ dispositivo.visitante.nome }}
+                                    </a>
+                                </td>
+                                <td>{{ dispositivo.visitante_nome_dispositivo|default:_("Sem nome") }}</td>
+                                <td class="mac-address">{{ dispositivo.visitante_mac_address }}</td>
+                                <td>{{ dispositivo.visitante_ultimo_acesso|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+                                <td>
+                                    {% if dispositivo.visitante_dispositivo_ativo %}
+                                        <span class="badge bg-success">{% trans 'Ativo' %}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{% trans 'Inativo' %}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'unifi_auth_app:visitante_dispositivo_detail' dispositivo.pk %}" 
+                                           class="btn btn-outline-primary" 
+                                           data-bs-toggle="tooltip" 
+                                           title="{% trans 'Ver detalhes' %}">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'unifi_auth_app:visitante_dispositivo_update' dispositivo.pk %}" 
+                                           class="btn btn-outline-secondary" 
+                                           data-bs-toggle="tooltip" 
+                                           title="{% trans 'Editar' %}">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn {% if dispositivo.visitante_dispositivo_ativo %}btn-outline-warning{% else %}btn-outline-success{% endif %} toggle-status" 
+                                                data-url="{% url 'unifi_auth_app:visitante_dispositivo_toggle_status' dispositivo.pk %}"
+                                                data-bs-toggle="tooltip" 
+                                                title="{% if dispositivo.visitante_dispositivo_ativo %}{% trans 'Desativar' %}{% else %}{% trans 'Ativar' %}{% endif %}">
+                                            <i class="bi {% if dispositivo.visitante_dispositivo_ativo %}bi-x-lg{% else %}bi-check-lg{% endif %}"></i>
+                                        </button>
+                                        <a href="{% url 'unifi_auth_app:visitante_dispositivo_delete' dispositivo.pk %}" 
+                                           class="btn btn-outline-danger btn-delete" 
+                                           data-bs-toggle="tooltip" 
+                                           title="{% trans 'Excluir' %}">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginação -->
+            {% if is_paginated %}
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        {% blocktrans with start=page_obj.start_index end=page_obj.end_index total=paginator.count %}
+                            Mostrando {{ start }} a {{ end }} de {{ total }} itens
+                        {% endblocktrans %}
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                                        &laquo; {% trans 'Anterior' %}
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                                                {{ num }}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                                        {% trans 'Próximo' %} &raquo;
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                {% if search or status %}
+                    {% trans 'Nenhum dispositivo encontrado com os critérios de busca fornecidos.' %}
+                {% else %}
+                    {% trans 'Nenhum dispositivo cadastrado. Clique no botão "Adicionar Dispositivo" para começar.' %}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+<script>
+    // Script para alternar o status do dispositivo via AJAX
+    document.addEventListener('DOMContentLoaded', function() {
+        // Alternar status do dispositivo
+        document.querySelectorAll('.toggle-status').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                const icon = this.querySelector('i');
+                const row = this.closest('tr');
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Atualiza o ícone e o tooltip do botão
+                        if (data.is_active) {
+                            this.classList.remove('btn-outline-success');
+                            this.classList.add('btn-outline-warning');
+                            icon.classList.remove('bi-check-lg');
+                            icon.classList.add('bi-x-lg');
+                            this.setAttribute('title', '{% trans 'Desativar' %}');
+                            
+                            // Atualiza o badge de status
+                            const statusBadge = row.querySelector('.badge');
+                            statusBadge.classList.remove('bg-secondary');
+                            statusBadge.classList.add('bg-success');
+                            statusBadge.textContent = '{% trans 'Ativo' %}';
+                        } else {
+                            this.classList.remove('btn-outline-warning');
+                            this.classList.add('btn-outline-success');
+                            icon.classList.remove('bi-x-lg');
+                            icon.classList.add('bi-check-lg');
+                            this.setAttribute('title', '{% trans 'Ativar' %}')
+                            
+                            // Atualiza o badge de status
+                            const statusBadge = row.querySelector('.badge');
+                            statusBadge.classList.remove('bg-success');
+                            statusBadge.classList.add('bg-secondary');
+                            statusBadge.textContent = '{% trans 'Inativo' %}';
+                        }
+                        
+                        // Mostra mensagem de sucesso
+                        showAlert('success', data.message);
+                    } else {
+                        showAlert('danger', data.error || '{% trans 'Ocorreu um erro ao atualizar o status do dispositivo.' %}');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    showAlert('danger', '{% trans 'Erro ao processar a solicitação. Tente novamente.' %}');
+                });
+            });
+        });
+        
+        // Função para exibir mensagens de alerta
+        function showAlert(type, message) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.role = 'alert';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Fechar' %}"></button>
+            `;
+            
+            // Insere o alerta no início do conteúdo principal
+            const content = document.querySelector('.card-body');
+            content.insertBefore(alert, content.firstChild);
+            
+            // Remove o alerta após 5 segundos
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    });
+</script>
+{% endblock %}
