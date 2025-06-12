@@ -50,6 +50,26 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 CSP_INCLUDE_NONCE_IN = ['script-src']
 CSP_DEFAULT_SRC = ["'self'"]
 
+# Configurações da API
+CORS_ALLOW_ALL_ORIGINS = True  # Em produção, restrinja para os domínios específicos
+CORS_ALLOW_CREDENTIALS = True
+
+# Configurações do UniFi Controller
+UNIFI_CONTROLLER_CONFIG = {
+    'IP': os.getenv('UNIFI_CONTROLLER_IP', '192.168.1.1'),
+    'PORT': os.getenv('UNIFI_CONTROLLER_PORT', '8443'),
+    'SITE_ID': os.getenv('UNIFI_SITE_ID', 'default'),
+    'USERNAME': os.getenv('UNIFI_USERNAME', 'admin'),
+    'PASSWORD': os.getenv('UNIFI_PASSWORD', ''),
+}
+
+# Configurações do Portal de Visitantes
+PORTAL_CONFIG = {
+    'AUTH_DURATION_MINUTES': 1440,  # 24 horas
+    'REQUIRE_EMAIL_CONFIRMATION': False,
+    'ALLOWED_DOMAINS': ['parauapebas.pa.leg.br'],  # Domínios permitidos para e-mail
+}
+
 
 # Finders de arquivos estáticos
 STATICFILES_FINDERS = [
@@ -82,6 +102,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',  # Para lidar com CORS
     'unifi_auth_app'
 ]
 X_FRAME_OPTIONS = "SAMEORIGIN"
@@ -90,6 +111,7 @@ MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Deve vir antes de CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
