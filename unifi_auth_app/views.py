@@ -104,7 +104,9 @@ def authorize_visitor(request):
         response = JsonResponse({}, status=200)
         response["Access-Control-Allow-Origin"] = "*"
         response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, X-Requested-With, X-CSRFToken"
+        response["Access-Control-Allow-Headers"] = "Content-Type, X-Requested-With, X-CSRFToken, X-Original-IP"
+        response["Access-Control-Expose-Headers"] = "Content-Length, Content-Range"
+        response["Access-Control-Allow-Credentials"] = "true"
         response["Access-Control-Max-Age"] = "86400"  # 24 horas
         return response
         
