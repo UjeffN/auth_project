@@ -144,7 +144,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',  # Para lidar com CORS
-    'unifi_auth_app',
+    'unifi_auth_app.apps.UnifiAuthAppConfig',  # Aponta para a config da app para carregar os sinais
 ]
 
 # Configuração de segurança para iframes

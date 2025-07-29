@@ -1,0 +1,27 @@
+[Unit]
+Description=Gunicorn daemon for UniFi Auth Project
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/auth_project
+Environment="PATH=/opt/auth_project/venv/bin"
+ExecStart=/opt/auth_project/venv/bin/gunicorn unifi_auth_project.wsgi:application \
+    --bind 127.0.0.1:8449 \
+    --workers 6 \
+    --timeout 30 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --worker-class sync \
+    --worker-tmp-dir /dev/shm \
+    --access-logfile /opt/auth_project/logs/gunicorn-access.log \
+    --error-logfile /opt/auth_project/logs/gunicorn-error.log
+
+# Limites de recursos
+LimitNOFILE=65535
+LimitNPROC=65535
+LimitMEMORY=256M
+
+[Install]
+WantedBy=multi-user.service
