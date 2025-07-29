@@ -15,9 +15,12 @@ import os
 from dotenv import load_dotenv
 
 # Carrega variáveis de ambiente do arquivo .env
-load_dotenv()
+
+load_dotenv('/opt/auth_project/.env')
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -31,6 +34,13 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'sua-chave-secreta-aqui')
 DEBUG = True  # Temporariamente True para servir arquivos estáticos
 
 ALLOWED_HOSTS = ['192.168.48.2', '192.168.48.3', 'localhost', '127.0.0.1', 'portal.parauapebas.pa.leg.br', '.parauapebas.pa.leg.br', 'https://192.168.48.2:8447', '192.168.48.100', '164.163.222.7', 'auth.parauapebas.pa.leg.br']  # O ponto no início permite todos os subdomínios
+#
+# Configurações de Segurança para HTTPS
+# Informa ao Django que ele está atrás de um proxy seguro (HTTPS)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Define que os cookies de sessão e CSRF só devem ser enviados via HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # Configurações de arquivos estáticos
 STATIC_URL = '/static/'
@@ -290,23 +300,6 @@ LOGGING = {
 WSGI_APPLICATION = 'unifi_auth_project.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'unifi_auth_db',
-        'USER': 'unifi_auth_user',
-        'PASSWORD': 'sua_senha_segura',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        }
-    }
-}
 
 
 # Password validation
@@ -357,3 +350,108 @@ UNIFI_CONTROLLER_CONFIG = {
     'USERNAME': os.getenv('UNIFI_USERNAME', 'jueferson.souto'),
     'PASSWORD': os.getenv('UNIFI_PASSWORD', 'cmp@2023'),
 }
+
+# Debug Database Config
+print('DB_NAME:', os.getenv('DB_NAME'))
+print('DB_USER:', os.getenv('DB_USER'))
+
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+    }
+}
+
+# Configuração de Logs - Suprimir avisos desnecessários
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'WARNING',  # Apenas WARNING e acima
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'level': 'WARNING',  # Apenas WARNING e acima
+            'class': 'logging.FileHandler',
+            'filename': '/opt/auth_project/logs/django.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',  # Apenas WARNING e acima
+            'propagate': True,
+        },
+        'unifi_auth_app': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',  # Apenas WARNING e acima
+            'propagate': True,
+        },
+    },
+}
+
+# Configurações de Sessão e CSRF
+# Garante que os cookies de sessão funcionem em HTTP e HTTPS
+SESSION_COOKIE_SECURE = False  # Mude para True em produção com HTTPS
+CSRF_COOKIE_SECURE = False     # Mude para True em produção com HTTPS
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # Pode ser 'Lax' ou 'Strict'
+CSRF_COOKIE_SAMESITE = 'Lax'     # Pode ser 'Lax' ou 'Strict'
+
+# Configuração para evitar redirecionamentos desnecessários
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = '/login/'
+
+# Garante que o Django use o protocolo correto para gerar URLs
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+# Configurações de SSL para o MySQL
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'ssl': {
+                'ca': '/etc/ssl/certs/ca-certificates.crt',  # Caminho padrão para certificados no Ubuntu
+            },
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'connect_timeout': 30,
+        },
+    }
+}
+
+# Suprimir avisos de SSL
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning, module='django.db.backends.mysql.base')
+

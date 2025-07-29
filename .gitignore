@@ -61,6 +61,11 @@ coverage.xml
 local_settings.py
 db.sqlite3-journal
 
+# Backup files
+*.bak
+*.swp
+*~
+
 # Static files
 /staticfiles/
 
@@ -69,3 +74,20 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Project-specific ignores
+
+# Backup directory
+/backups/
+
+# Data dumps
+user_backup.json
+user_backup_cleaned.json
+data_backup.json
+data_backup_clean.json
+
+# Editor backup files
+*.backup
+
+# Temporary scripts
+import_users.py
