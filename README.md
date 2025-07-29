@@ -101,3 +101,50 @@ gunicorn --workers 3 --bind 0.0.0.0:8000 unifi_auth_project.wsgi:application
 ```
 
 Considere usar um gerenciador de processos como o `systemd` para manter o Gunicorn rodando em segundo plano. Um exemplo de arquivo de serviço (`gunicorn.service`) está incluído no projeto.
+
+---
+
+## 💾 Backup e Restauração
+
+O projeto está configurado com um script (`scripts/backup.sh`) que realiza backups diários e automáticos do banco de dados via `cron`.
+
+- **Localização**: Os backups são armazenados em `/opt/auth_project/backups/`.
+- **Formato**: São arquivos SQL compactados (`.sql.gz`) com a data e hora no nome.
+- **Retenção**: Backups com mais de 7 dias são automaticamente excluídos para economizar espaço.
+
+### Como Restaurar um Backup
+
+Siga os passos abaixo para restaurar o banco de dados a partir de um arquivo de backup. **Atenção: este processo substituirá todos os dados atuais do banco de dados.**
+
+1.  **Navegue até o diretório de backups** e liste os arquivos para escolher qual restaurar:
+
+    ```bash
+    cd /opt/auth_project/backups/
+    ls -l
+    ```
+
+2.  **Descompacte o arquivo de backup escolhido**. Substitua `nome_do_arquivo.sql.gz` pelo nome do seu arquivo:
+
+    ```bash
+    gunzip nome_do_arquivo.sql.gz
+    ```
+
+    Isso criará um arquivo `.sql` descompactado (ex: `unifi_auth_db_2024-07-29_03-00-01.sql`).
+
+3.  **Importe o backup para o MariaDB**. Você precisará das credenciais do banco de dados, que estão no seu arquivo `.env`. O comando abaixo carrega as variáveis do `.env` e executa a importação:
+
+    ```bash
+    # Carrega as variáveis de ambiente do .env
+    set -a; source /opt/auth_project/.env; set +a
+
+    # Importa o banco de dados (substitua o nome do arquivo)
+    mysql -u $DB_USER -p$DB_PASSWORD $DB_NAME < nome_do_arquivo.sql
+    ```
+
+4.  **Verifique a restauração**: Acesse a aplicação ou o painel de administração para confirmar que os dados foram restaurados corretamente.
+
+5.  **(Opcional) Limpeza**: Após confirmar que a restauração foi bem-sucedida, você pode apagar o arquivo `.sql` descompactado para economizar espaço:
+
+    ```bash
+    rm nome_do_arquivo.sql
+    ```
