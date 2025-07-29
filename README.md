@@ -1,116 +1,103 @@
 # 📶 API de Autorização Wi-Fi com Django e UniFi
 
-## 📌 Visão Geral
-Este projeto fornece uma API para autorizar dispositivos na rede Wi-Fi **"Câmara"** através do UniFi Controller. A API permite que sistemas externos autorizem dispositivos por um período específico.
+Este projeto é uma aplicação Django projetada para gerenciar a autorização de usuários e dispositivos em uma rede Wi-Fi controlada por um UniFi Controller. Ele fornece um portal cativo para autenticação e um painel administrativo para gerenciamento.
+
+## ✨ Funcionalidades
+
+- Portal cativo para autenticação de usuários na rede Wi-Fi.
+- Integração com o UniFi Controller para autorizar e desautorizar dispositivos.
+- Painel de administração para gerenciar usuários, dispositivos e permissões.
+- Sistema de backup automático para o banco de dados.
 
 ---
 
-## ⚙️ Tecnologias Utilizadas
-- **Backend:** Django + SQLite
-- **Gerenciamento de rede:** UniFi Controller
-- **Rede Wi-Fi alvo:** SSID `"Câmara"`
+## 🚀 Guia de Instalação
 
----
+Siga os passos abaixo para configurar e executar o projeto em um novo ambiente (testado em Ubuntu/Debian).
 
-## 🔁 API de Autorização
+### 1. Pré-requisitos do Sistema
 
-### Endpoint
-```
-POST /api/authorize/
-```
-
-### Parâmetros
-```json
-{
-    "mac": "00:11:22:33:44:55",  // MAC address do cliente
-    "ap_mac": "AA:BB:CC:DD:EE:FF",  // MAC address do AP
-    "minutes": 60  // Duração do acesso 
-}
-```
-
-### Resposta de Sucesso
-```json
-{
-    "status": "success",
-    "message": "Cliente autorizado com sucesso"
-}
-```
-
-### Resposta de Erro
-```json
-{
-    "error": "Mensagem de erro"
-}
-```
-
----
-
-## 🔧 Integração com UniFi Controller
-
-### Configuração
-O sistema requer as seguintes variáveis de ambiente:
+Primeiro, instale as dependências essenciais do sistema:
 
 ```bash
-UNIFI_CONTROLLER_IP=unifi.example.com
-UNIFI_CONTROLLER_PORT=8443
-UNIFI_USERNAME=admin
-UNIFI_PASSWORD=senha
-UNIFI_SITE_ID=default
+sudo apt update
+sudo apt install -y python3-pip python3-venv mariadb-server build-essential libmysqlclient-dev
 ```
 
-### Autenticação
-- A comunicação com o UniFi Controller é feita via HTTPS
-- A API usa autenticação por sessão com o UniFi Controller
-- Todas as credenciais são armazenadas em variáveis de ambiente
+### 2. Configuração do Banco de Dados (MariaDB)
 
----
+Faça login no MariaDB e crie o banco de dados e o usuário para a aplicação.
 
-## 🛠️ Instalação
-
-1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/unifi-auth-api.git
+sudo mysql -u root -p
 ```
 
-2. Crie um ambiente virtual:
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
+Dentro do console do MariaDB, execute os seguintes comandos. Substitua `sua_senha_segura` por uma senha forte:
+
+```sql
+CREATE DATABASE unifi_auth_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'unifi_auth_user'@'localhost' IDENTIFIED BY 'sua_senha_segura';
+GRANT ALL PRIVILEGES ON unifi_auth_db.* TO 'unifi_auth_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
 ```
 
-3. Instale as dependências:
+### 3. Instalação da Aplicação
+
+Clone o repositório e configure o ambiente virtual do Python.
+
 ```bash
+# Clone o repositório
+git clone https://github.com/UjeffN/auth_project.git
+cd auth_project
+
+# Crie e ative o ambiente virtual
+python3 -m venv venv
+source venv/bin/activate
+
+# Instale as dependências do Python
 pip install -r requirements.txt
 ```
 
-4. Configure as variáveis de ambiente no arquivo `.env`:
+### 4. Configuração do Ambiente
+
+Copie o arquivo de exemplo `.env.example` para criar seu próprio arquivo de configuração `.env`.
+
 ```bash
-DJANGO_SECRET_KEY=sua-chave-secreta
-UNIFI_CONTROLLER_IP=unifi.example.com
-UNIFI_CONTROLLER_PORT=8443
-UNIFI_USERNAME=admin
-UNIFI_PASSWORD=senha
-UNIFI_SITE_ID=default
+cp .env.example .env
 ```
 
-5. Execute as migrações:
+Agora, edite o arquivo `.env` e preencha as variáveis com suas credenciais. Preste atenção especial às seguintes variáveis:
+
+- `SECRET_KEY`: Gere uma chave secreta forte. Você pode usar um gerador online.
+- `DB_NAME`: `unifi_auth_db` (o nome que você criou)
+- `DB_USER`: `unifi_auth_user` (o usuário que você criou)
+- `DB_PASSWORD`: `sua_senha_segura` (a senha que você definiu)
+- `UNIFI_URL`, `UNIFI_USER`, `UNIFI_PASSWORD`: Suas credenciais do UniFi Controller.
+
+### 5. Executando a Aplicação
+
+Com tudo configurado, aplique as migrações do banco de dados, crie um superusuário e inicie o servidor.
+
 ```bash
+# Aplica as migrações do banco de dados
 python manage.py migrate
-```
 
-6. Crie um superusuário:
-```bash
+# Cria um usuário administrador
 python manage.py createsuperuser
-```
 
-7. Inicie o servidor:
-```bash
+# Inicia o servidor de desenvolvimento
 python manage.py runserver
 ```
 
----
+A aplicação estará disponível em `http://127.0.0.1:8000`.
 
-## 🔒 Segurança
-- A comunicação com o UniFi Controller é feita via HTTPS
-- Todas as credenciais são armazenadas em variáveis de ambiente
-- A API usa CSRF token para proteção contra ataques CSRF
+### 6. Deploy com Gunicorn (Produção)
+
+Para um ambiente de produção, é recomendado usar um servidor de aplicação como o Gunicorn.
+
+```bash
+gunicorn --workers 3 --bind 0.0.0.0:8000 unifi_auth_project.wsgi:application
+```
+
+Considere usar um gerenciador de processos como o `systemd` para manter o Gunicorn rodando em segundo plano. Um exemplo de arquivo de serviço (`gunicorn.service`) está incluído no projeto.
