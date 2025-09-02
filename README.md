@@ -36,72 +36,163 @@ sudo mysql -u root -p
 Dentro do console do MariaDB, execute os seguintes comandos. Substitua `sua_senha_segura` por uma senha forte:
 
 ```sql
-CREATE DATABASE unifi_auth_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'unifi_auth_user'@'localhost' IDENTIFIED BY 'sua_senha_segura';
-GRANT ALL PRIVILEGES ON unifi_auth_db.* TO 'unifi_auth_user'@'localhost';
+CREATE DATABASE auth_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON auth_db.* TO 'root'@'localhost' IDENTIFIED BY 'sua_senha_segura';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-### 3. Instalação da Aplicação
+> **Nota**: Estamos usando o usuário `root` para simplificar a configuração. Em produção, é recomendado criar um usuário específico para a aplicação.
 
-Clone o repositório e configure o ambiente virtual do Python.
+### 3. Configuração das Variáveis de Ambiente
 
-```bash
-# Clone o repositório
-git clone https://github.com/UjeffN/auth_project.git
-cd auth_project
-
-# Crie e ative o ambiente virtual
-python3 -m venv venv
-source venv/bin/activate
-
-# Instale as dependências do Python
-pip install -r requirements.txt
-```
-
-### 4. Configuração do Ambiente
-
-Copie o arquivo de exemplo `.env.example` para criar seu próprio arquivo de configuração `.env`.
+Copie o arquivo de exemplo `.env.example` para `.env` e preencha as configurações necessárias:
 
 ```bash
 cp .env.example .env
 ```
 
-Agora, edite o arquivo `.env` e preencha as variáveis com suas credenciais. Preste atenção especial às seguintes variáveis:
+Edite o arquivo `.env` com as seguintes configurações:
 
-- `SECRET_KEY`: Gere uma chave secreta forte. Você pode usar um gerador online.
-- `DB_NAME`: `unifi_auth_db` (o nome que você criou)
-- `DB_USER`: `unifi_auth_user` (o usuário que você criou)
-- `DB_PASSWORD`: `sua_senha_segura` (a senha que você definiu)
-- `UNIFI_URL`, `UNIFI_USER`, `UNIFI_PASSWORD`: Suas credenciais do UniFi Controller.
+```ini
+# Configurações do Django
+SECRET_KEY=sua_chave_secreta_aqui
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,seu-ip-aqui
 
-### 5. Executando a Aplicação
+# Configurações do Banco de Dados
+DB_ENGINE=django.db.backends.mysql
+DB_NAME=auth_db
+DB_USER=root
+DB_PASSWORD=sua_senha_segura
+DB_HOST=localhost
+DB_PORT=3306
 
-Com tudo configurado, aplique as migrações do banco de dados, crie um superusuário e inicie o servidor.
-
-```bash
-# Aplica as migrações do banco de dados
-python manage.py migrate
-
-# Cria um usuário administrador
-python manage.py createsuperuser
-
-# Inicia o servidor de desenvolvimento
-python manage.py runserver
+# Configurações do UniFi Controller (opcional)
+UNIFI_URL=https://endereco-do-seu-unifi:8443
+UNIFI_USER=seu_usuario_unifi
+UNIFI_PASSWORD=sua_senha_unifi
+UNIFI_SITE_ID=default
 ```
 
-A aplicação estará disponível em `http://127.0.0.1:8000`.
+### 4. Configuração do Ambiente Virtual e Instalação de Dependências
 
-### 6. Deploy com Gunicorn (Produção)
+Crie e ative o ambiente virtual:
 
-Para um ambiente de produção, é recomendado usar um servidor de aplicação como o Gunicorn.
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Instale as dependências do projeto:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Aplicando Migrações
+
+Execute as migrações do banco de dados:
+
+```bash
+python manage.py migrate
+```
+
+### 6. Criando um Superusuário
+
+Crie um superusuário para acessar o painel administrativo:
+
+```bash
+python manage.py createsuperuser
+```
+
+Siga as instruções para criar o usuário administrador.
+
+### 7. Criando Diretório de Logs
+
+Crie o diretório para armazenar os logs da aplicação:
+
+```bash
+mkdir -p logs
+```
+
+### 8. Iniciando o Servidor de Desenvolvimento
+
+Para iniciar o servidor de desenvolvimento, execute:
+
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+Acesse o painel administrativo em: http://localhost:8000/admin/
+
+### 9. Configuração do UniFi Controller (Opcional)
+
+Se você deseja integrar com um controlador UniFi, certifique-se de que as seguintes configurações estejam corretas no arquivo `.env`:
+
+- `UNIFI_URL`: URL completa do seu controlador UniFi (incluindo a porta)
+- `UNIFI_USER`: Nome de usuário do UniFi
+- `UNIFI_PASSWORD`: Senha do usuário do UniFi
+- `UNIFI_SITE_ID`: Nome do site no UniFi (geralmente 'default')
+
+## 👥 Primeiros Passos
+
+Agora que você configurou o ambiente, você pode acessar o painel administrativo em:
+
+- **URL do Admin**: http://localhost:8000/admin/
+- **Usuário**: O que você criou com `createsuperuser`
+- **Senha**: A senha que você definiu
+
+### Acessando de Outros Dispositivos
+
+Para acessar a aplicação de outros dispositivos na mesma rede, use o endereço IP da máquina onde o servidor está rodando:
+
+```
+http://seu-ip:8000/admin/
+```
+
+## 🚀 Implantação em Produção
+
+Para um ambiente de produção, é recomendado usar um servidor de aplicação como o Gunicorn com Nginx como proxy reverso.
+
+### 1. Instalando o Gunicorn
+
+```bash
+pip install gunicorn
+```
+
+### 2. Iniciando o Gunicorn
 
 ```bash
 gunicorn --workers 3 --bind 0.0.0.0:8000 unifi_auth_project.wsgi:application
 ```
 
-Considere usar um gerenciador de processos como o `systemd` para manter o Gunicorn rodando em segundo plano. Um exemplo de arquivo de serviço (`gunicorn.service`) está incluído no projeto.
+### 3. Configurando o Nginx (Exemplo)
+
+Crie um arquivo de configuração para o Nginx em `/etc/nginx/sites-available/unifi_auth`:
+
+```nginx
+server {
+    listen 80;
+    server_name seu-dominio.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static/ {
+        alias /caminho/para/seu/projeto/staticfiles/;
+    }
+}
+```
+
+### 4. Configurando o Systemd (Opcional)
+
+Para manter o Gunicorn rodando em segundo plano e iniciar automaticamente com o sistema, você pode criar um serviço systemd. Um exemplo de arquivo de serviço (`gunicorn.service`) está incluído no diretório `docs/` do projeto.
 
 ---
 
